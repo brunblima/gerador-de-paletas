@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Copy, Download, RefreshCw, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -39,7 +39,11 @@ export default function ColorPaletteGenerator() {
       if (!data.colors || data.colors.length === 0) {
         throw new Error("Nenhuma cor encontrada na resposta da API.");
       }
-      const colors = data.colors.map((color: any) => color.hex.value);
+      interface ColorData {
+        hex: { value: string };
+      }
+
+      const colors = data.colors.map((color: ColorData) => color.hex.value);
 
       return colors;
     } catch (error) {
@@ -49,15 +53,12 @@ export default function ColorPaletteGenerator() {
   };
 
   // Gerar uma nova paleta
-  const generatePalette = async () => {
+  const generatePalette = useCallback(async () => {
     const newPalette = await fetchColorPalette();
-
     if (newPalette.length > 0) {
       setPalette(newPalette);
-    } else {
-      console.warn("Falha ao atualizar a paleta.");
     }
-  };
+  }, []);
 
   // Salvar Paleta Abaixo
   const savePalette = () => {
@@ -101,7 +102,7 @@ export default function ColorPaletteGenerator() {
   // Atualizar Componente
   useEffect(() => {
     generatePalette();
-  }, []);
+  }, [generatePalette]);
 
   return (
     <div
