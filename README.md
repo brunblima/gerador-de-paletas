@@ -42,7 +42,7 @@ npm run dev
 Acesse **http://localhost:3000** no navegador para ver o projeto em ação.
 
 ## 🖼️ Demonstração
-![Preview do projeto](https://via.placeholder.com/800x400.png?text=Preview+do+Projeto)
+![Preview do projeto]([https://via.placeholder.com/800x400.png?text=Preview+do+Projeto](https://gerador-de-paletas.vercel.app/))
 
 ## 📌 Melhorias Futuras
 - Permitir escolha manual de cores base.
