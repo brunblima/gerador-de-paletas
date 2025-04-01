@@ -1,103 +1,207 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from "react";
+import { Copy, Download, RefreshCw, Save } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+
+export default function ColorPaletteGenerator() {
+  const [palette, setPalette] = useState<string[]>([]);
+  const [savedPalettes, setSavedPalettes] = useState<string[][]>([]);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Função para gerar um hex aleatório
+  const getRandomHex = () => {
+    const letters = "0123456789ABCDEF";
+    let color = "";
+    for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  };
+
+  // Buscar paleta de cores da API
+  const fetchColorPalette = async () => {
+    try {
+      const randomHex = getRandomHex(); // Gerando um novo hex a cada requisição
+      const response = await fetch(
+        `https://www.thecolorapi.com/scheme?hex=${randomHex}&mode=analogic&count=5`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Erro na API: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.colors || data.colors.length === 0) {
+        throw new Error("Nenhuma cor encontrada na resposta da API.");
+      }
+      const colors = data.colors.map((color: any) => color.hex.value);
+
+      return colors;
+    } catch (error) {
+      console.error("Erro ao buscar paleta:", error);
+      return [];
+    }
+  };
+
+  // Gerar uma nova paleta
+  const generatePalette = async () => {
+    const newPalette = await fetchColorPalette();
+
+    if (newPalette.length > 0) {
+      setPalette(newPalette);
+    } else {
+      console.warn("Falha ao atualizar a paleta.");
+    }
+  };
+
+  // Salvar Paleta Abaixo
+  const savePalette = () => {
+    if (palette.length > 0) {
+      setSavedPalettes([...savedPalettes, palette]);
+      toast("Paleta Salva", {
+        description: "Suas cores foram salvas abaixo.",
+      });
+    }
+  };
+
+  // Exportar em JSON
+  const exportPalette = () => {
+    if (palette.length > 0) {
+      const dataStr =
+        "data:text/json;charset=utf-8," +
+        encodeURIComponent(JSON.stringify(palette));
+      const downloadAnchorNode = document.createElement("a");
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", "color-palette.json");
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+    }
+  };
+
+  // Copiar Cor
+  const copyColor = (color: string) => {
+    navigator.clipboard.writeText(color);
+    toast("Cor copiada", {
+      description: `${color} foi copiado para a área de transferência.`,
+    });
+  };
+
+  // Alternar Dark Mode
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+    document.documentElement.classList.toggle("dark");
+  };
+
+  // Atualizar Componente
+  useEffect(() => {
+    generatePalette();
+  }, []);
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+    <div
+      className={`min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-300 ${
+        isDarkMode ? "dark bg-gray-900 text-white" : "bg-gray-50 text-black"
+      }`}
+    >
+      <div className="w-full max-w-3xl">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl font-bold">Gerador de Paletas de Cores</h1>
+          <div className="flex items-center space-x-2">
+            <Label htmlFor="dark-mode" className="text-sm">
+              Dark Mode
+            </Label>
+            <Switch
+              id="dark-mode"
+              checked={isDarkMode}
+              onCheckedChange={toggleDarkMode}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Mostra as cores */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+          {palette.map((color, index) => (
+            <div
+              key={index}
+              className="aspect-square rounded-lg shadow-md transition-transform duration-300 hover:scale-105 cursor-pointer flex items-center justify-center relative"
+              style={{ backgroundColor: color }}
+              onClick={() => copyColor(color)}
+            >
+              <span className="absolute bottom-2 px-2 py-1 rounded text-xs font-mono bg-white bg-opacity-75 text-black">
+                {color}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Botoões de ação */}
+        <div className="flex flex-wrap justify-center gap-4 mb-12">
+          <Button
+            onClick={generatePalette}
+            className="transition-all duration-300 hover:scale-105 bg-blue-500 hover:bg-blue-600 text-white"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Gerar Nova Paleta
+          </Button>
+          <Button
+            onClick={savePalette}
+            className="transition-all duration-300 hover:scale-105 border-blue-500 text-blue-500 hover:border-blue-600 hover:text-white hover:bg-blue-600"
+          >
+            <Save className="mr-2 h-4 w-4" />
+            Salvar Paleta
+          </Button>
+          <Button
+            onClick={exportPalette}
+            className="transition-all duration-300 hover:scale-105 border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Exportar em JSON
+          </Button>
+        </div>
+
+        {/* Salvar Paleta */}
+        {savedPalettes.length > 0 && (
+          <div className="w-full">
+            <h2 className="text-xl font-semibold mb-4 dark:text-white">
+              Salvar Paleta
+            </h2>
+            <div className="space-y-4">
+              {savedPalettes.map((savedPalette, paletteIndex) => (
+                <div
+                  key={paletteIndex}
+                  className="flex rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300"
+                >
+                  {savedPalette.map((color, colorIndex) => (
+                    <div
+                      key={`${paletteIndex}-${colorIndex}`}
+                      className="flex-1 h-12 cursor-pointer transition-transform duration-300 hover:scale-y-110"
+                      style={{ backgroundColor: color }}
+                      onClick={() => copyColor(color)}
+                      title={color}
+                    />
+                  ))}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-12 w-12 rounded-none"
+                    onClick={() => {
+                      setPalette(savedPalettes[paletteIndex]);
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
